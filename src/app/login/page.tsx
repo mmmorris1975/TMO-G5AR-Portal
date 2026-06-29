@@ -67,7 +67,7 @@ export default function LoginPage() {
       } else {
         setError(data.error || "Login failed")
       }
-    } catch (err) {
+    } catch {
       setError("Connection failed. Is the gateway reachable?")
     } finally {
       setLoading(false)

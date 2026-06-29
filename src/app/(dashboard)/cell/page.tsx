@@ -24,7 +24,7 @@ interface SignalHistory {
 export default function CellPage() {
   const { data: cell, isLoading: cellLoading, mutate: mutateCell } = useCellInfo()
   const { data: sim, isLoading: simLoading, mutate: mutateSim } = useSimInfo()
-  const { data: gateway } = useGatewayInfo()
+  useGatewayInfo()
 
   // Track signal history
   const [history, setHistory] = useState<SignalHistory>({
