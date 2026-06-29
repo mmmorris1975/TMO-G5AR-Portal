@@ -4,7 +4,7 @@ import { cookies } from "next/headers"
 const DEFAULT_ROUTER_IP = "192.168.12.1"
 
 export async function GET() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const routerIp = cookieStore.get("router_ip")?.value || DEFAULT_ROUTER_IP
 
   try {
