@@ -28,6 +28,23 @@ async function handleUnauthorized() {
   window.location.replace("/login")
 }
 
+// Silent fetcher — returns null on 401 instead of redirecting, for optional authenticated widgets
+const silentFetcher = async (url: string) => {
+  if (isRedirecting) return new Promise(() => {})
+
+  const res = await fetch(url, {
+    cache: "no-store",
+    headers: { "Cache-Control": "no-cache" },
+  })
+
+  if (res.status === 401) return null
+
+  const data = await res.json()
+  if (data.error === "Not authenticated") return null
+
+  return data
+}
+
 const fetcher = async (url: string) => {
   // Don't fetch if we're already redirecting
   if (isRedirecting) {
@@ -94,6 +111,14 @@ export function useClients() {
   return useSWR("/api/router/clients", fetcher, {
     refreshInterval: 10000,
     keepPreviousData: true,
+  })
+}
+
+// Unauthenticated-safe variant — returns null instead of redirecting on 401
+export function useClientsOptional() {
+  return useSWR("/api/router/clients", silentFetcher, {
+    refreshInterval: 10000,
+    keepPreviousData: false,
   })
 }
 
