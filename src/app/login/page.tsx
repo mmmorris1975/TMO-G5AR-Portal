@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Loader2, Eye, EyeOff, Globe, User, Lock } from "lucide-react"
 import Image from "next/image"
 
-const allowedReturnPaths = new Set(["/", "/devices", "/wifi", "/cell", "/system])
+const allowedReturnPaths = new Set(["/", "/devices", "/wifi", "/cell", "/system"])
 
 export default function LoginPage() {
   const [routerIp, setRouterIp] = useState("192.168.12.1")
