@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label"
 import { Loader2, Eye, EyeOff, Globe, User, Lock } from "lucide-react"
 import Image from "next/image"
 
+const allowedReturnPaths = new Set(["/", "/devices", "/wifi", "/cell", "/system])
+
 export default function LoginPage() {
   const [routerIp, setRouterIp] = useState("192.168.12.1")
   const [username, setUsername] = useState("")
@@ -58,7 +60,7 @@ export default function LoginPage() {
         }
         const params = new URLSearchParams(window.location.search)
         const from = params.get("from")
-        const dest = from && from.startsWith("/") && !from.startsWith("//") ? from : "/"
+        const dest = from && allowedReturnPaths.has(from) ? from : "/"
         window.location.replace(dest)
       } else {
         setError(data.error || "Login failed")
