@@ -28,24 +28,7 @@ async function handleUnauthorized() {
   window.location.replace("/login")
 }
 
-// Silent fetcher — returns null on 401 instead of redirecting, for optional authenticated widgets
-const silentFetcher = async (url: string) => {
-  if (isRedirecting) return new Promise(() => {})
-
-  const res = await fetch(url, {
-    cache: "no-store",
-    headers: { "Cache-Control": "no-cache" },
-  })
-
-  if (res.status === 401) return null
-
-  const data = await res.json()
-  if (data.error === "Not authenticated") return null
-
-  return data
-}
-
-const fetcher = async (url: string) => {
+const fetcher = async (url: string, silent = false) => {
   // Don't fetch if we're already redirecting
   if (isRedirecting) {
     return new Promise(() => {})
@@ -58,20 +41,22 @@ const fetcher = async (url: string) => {
 
   // Check for 401 status before parsing JSON
   if (res.status === 401) {
-    handleUnauthorized()
-    return new Promise(() => {})
+    if (!silent) handleUnauthorized()
+    return silent ? null : new Promise(() => {})
   }
 
   const data = await res.json()
 
   // Also check for auth error in response body
   if (data.error === "Not authenticated") {
-    handleUnauthorized()
-    return new Promise(() => {})
+    if (!silent) handleUnauthorized()
+    return silent ? null : new Promise(() => {})
   }
 
   return data
 }
+
+const silentFetcher = (url: string) => fetcher(url, true)
 
 export interface GatewayHealthStatus {
   status: "online" | "offline" | "error"
