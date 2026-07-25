@@ -62,13 +62,13 @@ export function DeviceSheet({ client, onClose }: DeviceSheetProps) {
     setTimelines([])
     setCustomName("")
     setNameSaved(false)
-  }, [client?.mac])
+  }, [client])
 
   useEffect(() => {
     if (deviceNames !== undefined && client) {
       setCustomName(deviceNames[client.mac] ?? "")
     }
-  }, [deviceNames, client?.mac])
+  }, [deviceNames, client])
 
   useEffect(() => {
     setNameSaved(false)
@@ -81,7 +81,7 @@ export function DeviceSheet({ client, onClose }: DeviceSheetProps) {
       setTimelines(scheduleData.timelines ?? [])
       setLoadedForMac(client.mac)
     }
-  }, [scheduleData, client?.mac])
+  }, [scheduleData, client, loadedForMac])
 
   async function saveName() {
     if (!client) return
