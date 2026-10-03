@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server"
 
 // Routes that require authentication
 const protectedApiRoutes = [
+  "/api/device-names",
   "/api/router/clients",
   "/api/router/cell",
   "/api/router/sim",
@@ -61,7 +62,7 @@ export const config = {
      * - / (home)
      * - /login
      * - /devices, /wifi, /cell, /system (dashboard pages)
-     * - /api/router/* (API routes)
+     * - /api/router/* and /api/device-names (API routes)
      */
     "/",
     "/login",
@@ -70,5 +71,6 @@ export const config = {
     "/cell",
     "/system",
     "/api/router/:path*",
+    "/api/device-names",
   ],
 }
