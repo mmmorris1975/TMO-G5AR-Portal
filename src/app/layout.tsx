@@ -20,6 +20,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Apply the saved dark mode preference before first paint to avoid a light/dark flash */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var d=localStorage.getItem("dark-mode");if(d!==null)document.documentElement.classList.toggle("dark",d==="true")}catch(e){}`,
+          }}
+        />
+      </head>
       <body className={inter.className}>
         {children}
       </body>
