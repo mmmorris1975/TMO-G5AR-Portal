@@ -24,12 +24,11 @@ export function RefreshControl({ onRefresh, isLoading }: RefreshControlProps) {
 
   const isOffline = health?.status === "offline" || health?.status === "error"
 
-  // Stop auto-refresh when gateway goes offline
-  useEffect(() => {
-    if (isOffline && autoRefresh) {
-      setAutoRefresh(false)
-    }
-  }, [isOffline, autoRefresh])
+  // Stop auto-refresh when gateway goes offline (adjusting state during render
+  // so it does not resume on its own when the gateway comes back)
+  if (isOffline && autoRefresh) {
+    setAutoRefresh(false)
+  }
 
   useEffect(() => {
     if (!autoRefresh || isOffline) return
