@@ -4,7 +4,7 @@ const DEVICE_NAMES_PATH = process.env.DEVICE_NAMES_PATH || "/app/data/device-nam
 
 async function readNames(): Promise<Record<string, string>> {
   try {
-    const content = await readFile(DEVICE_NAMES_PATH, "utf-8")
+    const content = await readFile(/*turbopackIgnore: true*/ DEVICE_NAMES_PATH, "utf-8")
     return JSON.parse(content)
   } catch {
     return {}
@@ -12,7 +12,7 @@ async function readNames(): Promise<Record<string, string>> {
 }
 
 async function writeNames(names: Record<string, string>): Promise<void> {
-  await writeFile(DEVICE_NAMES_PATH, JSON.stringify(names, null, 2), "utf-8")
+  await writeFile(/*turbopackIgnore: true*/ DEVICE_NAMES_PATH, JSON.stringify(names, null, 2), "utf-8")
 }
 
 export async function getDeviceNames(): Promise<Record<string, string>> {
