@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Cable, Wifi, Check, Plus, Trash2 } from "lucide-react"
 import { Client } from "@/lib/router-api"
 import { Sheet } from "@/components/ui/sheet"
@@ -38,53 +38,53 @@ interface DeviceSheetProps {
 }
 
 export function DeviceSheet({ client, onClose }: DeviceSheetProps) {
-  const [customName, setCustomName] = useState("")
+  return (
+    <Sheet open={client !== null} onClose={onClose} title="Device Settings">
+      {/* Keyed by MAC so switching devices starts with fresh form state */}
+      {client && <DeviceSheetBody key={client.mac} client={client} />}
+    </Sheet>
+  )
+}
+
+interface Schedule {
+  ban: boolean
+  isEnabled: boolean
+  timelines: Timeline[]
+}
+
+function DeviceSheetBody({ client }: { client: ClientWithType }) {
+  const [nameEdit, setNameEdit] = useState<string | null>(null)
   const [nameSaving, setNameSaving] = useState(false)
   const [nameSaved, setNameSaved] = useState(false)
 
-  const [ban, setBan] = useState(false)
   const [banSaving, setBanSaving] = useState(false)
-  const [isEnabled, setIsEnabled] = useState(false)
-  const [timelines, setTimelines] = useState<Timeline[]>([])
   const [scheduleSaving, setScheduleSaving] = useState(false)
-  const [loadedForMac, setLoadedForMac] = useState<string | null>(null)
+  const [scheduleEdits, setScheduleEdits] = useState<Schedule | null>(null)
 
   const { data: deviceNames, mutate: mutateNames } = useDeviceNames()
-  const { data: scheduleData } = useDeviceSchedule(client?.mac ?? null)
+  const { data: scheduleData } = useDeviceSchedule(client.mac)
 
-  const scheduleLoaded = loadedForMac === client?.mac
+  // Fetched values are shown until the user edits them
+  const customName = nameEdit ?? deviceNames?.[client.mac] ?? ""
+  const scheduleLoaded = scheduleData !== undefined
+  const fetchedSchedule: Schedule = {
+    ban: scheduleData?.ban ?? false,
+    isEnabled: scheduleData?.isEnabled ?? false,
+    timelines: scheduleData?.timelines ?? [],
+  }
+  const { ban, isEnabled, timelines } = scheduleEdits ?? fetchedSchedule
 
-  useEffect(() => {
-    if (!client) return
-    setLoadedForMac(null)
-    setBan(false)
-    setIsEnabled(false)
-    setTimelines([])
-    setCustomName("")
+  const updateSchedule = (changes: Partial<Schedule>) =>
+    setScheduleEdits({ ...(scheduleEdits ?? fetchedSchedule), ...changes })
+  const setBan = (value: boolean) => updateSchedule({ ban: value })
+  const setIsEnabled = (value: boolean) => updateSchedule({ isEnabled: value })
+  const setTimelines = (value: Timeline[]) => updateSchedule({ timelines: value })
+  const setCustomName = (value: string) => {
+    setNameEdit(value)
     setNameSaved(false)
-  }, [client])
-
-  useEffect(() => {
-    if (deviceNames !== undefined && client) {
-      setCustomName(deviceNames[client.mac] ?? "")
-    }
-  }, [deviceNames, client])
-
-  useEffect(() => {
-    setNameSaved(false)
-  }, [customName])
-
-  useEffect(() => {
-    if (scheduleData && client && loadedForMac !== client.mac) {
-      setBan(scheduleData.ban)
-      setIsEnabled(scheduleData.isEnabled)
-      setTimelines(scheduleData.timelines ?? [])
-      setLoadedForMac(client.mac)
-    }
-  }, [scheduleData, client, loadedForMac])
+  }
 
   async function saveName() {
-    if (!client) return
     setNameSaving(true)
     try {
       await fetch("/api/device-names", {
@@ -101,7 +101,7 @@ export function DeviceSheet({ client, onClose }: DeviceSheetProps) {
   }
 
   async function saveBanToggle(newBan: boolean) {
-    if (!client || !scheduleLoaded || banSaving) return
+    if (!scheduleLoaded || banSaving) return
     setBan(newBan)
     setBanSaving(true)
     try {
@@ -116,7 +116,6 @@ export function DeviceSheet({ client, onClose }: DeviceSheetProps) {
   }
 
   async function saveSchedule() {
-    if (!client) return
     setScheduleSaving(true)
     try {
       await fetch("/api/router/schedules", {
@@ -171,194 +170,190 @@ export function DeviceSheet({ client, onClose }: DeviceSheetProps) {
   }
 
   return (
-    <Sheet open={client !== null} onClose={onClose} title="Device Settings">
-      {client && (
-        <div className="space-y-6">
-          {/* Device info */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 shrink-0">
-                {client.type === "ethernet" ? (
-                  <Cable className="h-5 w-5" />
-                ) : (
-                  <Wifi className="h-5 w-5" />
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-base truncate">
-                  {client.name || "Unknown Device"}
-                </p>
-                <p className="text-sm text-muted-foreground font-mono">{client.mac}</p>
-              </div>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <code className="bg-muted/50 px-2 py-1 rounded-lg text-sm">{client.ipv4}</code>
-              {getConnectionBadge(client.type)}
-              <Badge variant={client.connected ? "success" : "secondary"}>
-                {client.connected ? "Online" : "Offline"}
-              </Badge>
-            </div>
+    <div className="space-y-6">
+      {/* Device info */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 shrink-0">
+            {client.type === "ethernet" ? (
+              <Cable className="h-5 w-5" />
+            ) : (
+              <Wifi className="h-5 w-5" />
+            )}
           </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-base truncate">
+              {client.name || "Unknown Device"}
+            </p>
+            <p className="text-sm text-muted-foreground font-mono">{client.mac}</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <code className="bg-muted/50 px-2 py-1 rounded-lg text-sm">{client.ipv4}</code>
+          {getConnectionBadge(client.type)}
+          <Badge variant={client.connected ? "success" : "secondary"}>
+            {client.connected ? "Online" : "Offline"}
+          </Badge>
+        </div>
+      </div>
 
-          <hr className="border-border/50" />
+      <hr className="border-border/50" />
 
-          {/* Custom name */}
-          <div className="space-y-3">
+      {/* Custom name */}
+      <div className="space-y-3">
+        <div>
+          <Label className="text-base font-medium">Custom Name</Label>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Override the device hostname with a friendly name
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={customName}
+            onChange={(e) => setCustomName(e.target.value)}
+            placeholder={client.name || "Enter a name"}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveName()
+            }}
+          />
+          <Button
+            onClick={saveName}
+            disabled={nameSaving}
+            variant="outline"
+            size="sm"
+            className="shrink-0 w-16"
+          >
+            {nameSaved ? <Check className="h-4 w-4 text-green-500" /> : "Save"}
+          </Button>
+        </div>
+      </div>
+
+      <hr className="border-border/50" />
+
+      {/* Block access + schedule */}
+      {!scheduleLoaded ? (
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1.5">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+            <Skeleton className="h-6 w-11 rounded-full shrink-0" />
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Ban toggle */}
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <Label className="text-base font-medium">Custom Name</Label>
+              <Label className="text-base font-medium">Block Internet Access</Label>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Override the device hostname with a friendly name
+                Immediately blocks all internet access for this device
               </p>
             </div>
-            <div className="flex gap-2">
-              <Input
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value)}
-                placeholder={client.name || "Enter a name"}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") saveName()
-                }}
-              />
-              <Button
-                onClick={saveName}
-                disabled={nameSaving}
-                variant="outline"
-                size="sm"
-                className="shrink-0 w-16"
-              >
-                {nameSaved ? <Check className="h-4 w-4 text-green-500" /> : "Save"}
-              </Button>
-            </div>
+            <Switch
+              checked={ban}
+              onCheckedChange={(v) => {
+                if (!banSaving) saveBanToggle(v as boolean)
+              }}
+            />
           </div>
 
-          <hr className="border-border/50" />
-
-          {/* Block access + schedule */}
-          {!scheduleLoaded ? (
-            <div className="space-y-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1.5">
-                  <Skeleton className="h-5 w-40" />
-                  <Skeleton className="h-4 w-64" />
-                </div>
-                <Skeleton className="h-6 w-11 rounded-full shrink-0" />
-              </div>
-            </div>
-          ) : (
+          {!ban && (
             <>
-              {/* Ban toggle */}
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <Label className="text-base font-medium">Block Internet Access</Label>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    Immediately blocks all internet access for this device
-                  </p>
-                </div>
-                <Switch
-                  checked={ban}
-                  onCheckedChange={(v) => {
-                    if (!banSaving) saveBanToggle(v as boolean)
-                  }}
-                />
-              </div>
+              <hr className="border-border/50" />
 
-              {!ban && (
-                <>
-                  <hr className="border-border/50" />
-
-                  {/* Schedule */}
-                  <div className="space-y-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <Label className="text-base font-medium">Access Schedule</Label>
-                        <p className="text-sm text-muted-foreground mt-0.5">
-                          Restrict when this device can access the internet
-                        </p>
-                      </div>
-                      <Switch checked={isEnabled} onCheckedChange={(v) => setIsEnabled(v as boolean)} />
-                    </div>
-
-                    {isEnabled && (
-                      <div className="space-y-3">
-                        {timelines.map((timeline, idx) => (
-                          <div
-                            key={idx}
-                            className="rounded-xl border border-border/50 p-4 space-y-3 bg-muted/20"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-muted-foreground">
-                                Window {idx + 1}
-                              </span>
-                              <button
-                                onClick={() => removeTimeline(idx)}
-                                className="text-muted-foreground hover:text-destructive transition-colors"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                            <div className="flex flex-wrap gap-1">
-                              {DAYS.map(({ key, label }) => (
-                                <button
-                                  key={key}
-                                  onClick={() => toggleDay(idx, key)}
-                                  className={cn(
-                                    "h-8 w-9 rounded-lg text-xs font-medium transition-colors",
-                                    timeline.daysOfWeek.includes(key)
-                                      ? "bg-magenta-500 text-white"
-                                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                                  )}
-                                >
-                                  {label}
-                                </button>
-                              ))}
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="text-muted-foreground shrink-0">From</span>
-                              <input
-                                type="time"
-                                value={timeline.startTime}
-                                onChange={(e) =>
-                                  updateTimeline(idx, { startTime: e.target.value })
-                                }
-                                className="bg-muted/50 rounded-lg px-2 py-1 text-sm border-0 outline-none focus:ring-1 focus:ring-ring flex-1 min-w-0"
-                              />
-                              <span className="text-muted-foreground shrink-0">to</span>
-                              <input
-                                type="time"
-                                value={timeline.endTime}
-                                onChange={(e) =>
-                                  updateTimeline(idx, { endTime: e.target.value })
-                                }
-                                className="bg-muted/50 rounded-lg px-2 py-1 text-sm border-0 outline-none focus:ring-1 focus:ring-ring flex-1 min-w-0"
-                              />
-                            </div>
-                          </div>
-                        ))}
-
-                        <button
-                          onClick={addTimeline}
-                          className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-border/50 p-3 text-sm text-muted-foreground hover:border-border hover:text-foreground transition-colors"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Add time window
-                        </button>
-                      </div>
-                    )}
-
-                    <Button
-                      onClick={saveSchedule}
-                      disabled={scheduleSaving}
-                      className="w-full"
-                    >
-                      {scheduleSaving ? "Saving..." : "Save Schedule"}
-                    </Button>
+              {/* Schedule */}
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <Label className="text-base font-medium">Access Schedule</Label>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Restrict when this device can access the internet
+                    </p>
                   </div>
-                </>
-              )}
+                  <Switch checked={isEnabled} onCheckedChange={(v) => setIsEnabled(v as boolean)} />
+                </div>
+
+                {isEnabled && (
+                  <div className="space-y-3">
+                    {timelines.map((timeline, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-xl border border-border/50 p-4 space-y-3 bg-muted/20"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-muted-foreground">
+                            Window {idx + 1}
+                          </span>
+                          <button
+                            onClick={() => removeTimeline(idx)}
+                            className="text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {DAYS.map(({ key, label }) => (
+                            <button
+                              key={key}
+                              onClick={() => toggleDay(idx, key)}
+                              className={cn(
+                                "h-8 w-9 rounded-lg text-xs font-medium transition-colors",
+                                timeline.daysOfWeek.includes(key)
+                                  ? "bg-magenta-500 text-white"
+                                  : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                              )}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-muted-foreground shrink-0">From</span>
+                          <input
+                            type="time"
+                            value={timeline.startTime}
+                            onChange={(e) =>
+                              updateTimeline(idx, { startTime: e.target.value })
+                            }
+                            className="bg-muted/50 rounded-lg px-2 py-1 text-sm border-0 outline-none focus:ring-1 focus:ring-ring flex-1 min-w-0"
+                          />
+                          <span className="text-muted-foreground shrink-0">to</span>
+                          <input
+                            type="time"
+                            value={timeline.endTime}
+                            onChange={(e) =>
+                              updateTimeline(idx, { endTime: e.target.value })
+                            }
+                            className="bg-muted/50 rounded-lg px-2 py-1 text-sm border-0 outline-none focus:ring-1 focus:ring-ring flex-1 min-w-0"
+                          />
+                        </div>
+                      </div>
+                    ))}
+
+                    <button
+                      onClick={addTimeline}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-border/50 p-3 text-sm text-muted-foreground hover:border-border hover:text-foreground transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add time window
+                    </button>
+                  </div>
+                )}
+
+                <Button
+                  onClick={saveSchedule}
+                  disabled={scheduleSaving}
+                  className="w-full"
+                >
+                  {scheduleSaving ? "Saving..." : "Save Schedule"}
+                </Button>
+              </div>
             </>
           )}
-        </div>
+        </>
       )}
-    </Sheet>
+    </div>
   )
 }
