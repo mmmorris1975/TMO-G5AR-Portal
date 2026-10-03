@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -33,28 +33,25 @@ export default function WifiPage() {
   const { data, isLoading, mutate } = useApConfig()
   const [showPassword, setShowPassword] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [localConfig, setLocalConfig] = useState<LocalConfig | null>(null)
+  // Unsaved edits; the fetched data is shown until the user changes something
+  const [edits, setEdits] = useState<LocalConfig | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
+  const localConfig = edits ?? (data as LocalConfig | undefined) ?? null
 
-  // Sync local config with fetched data
-  useEffect(() => {
-    if (data && !localConfig) {
-      setLocalConfig(data as LocalConfig)
-    }
-  }, [data, localConfig])
-
-  // Reset local config when data changes (after save or refresh)
-  useEffect(() => {
+  // Discard edits when the fetched data changes (after save or refresh)
+  const [prevData, setPrevData] = useState(data)
+  if (data !== prevData) {
+    setPrevData(data)
     if (data) {
-      setLocalConfig(data as LocalConfig)
+      setEdits(null)
       setHasChanges(false)
     }
-  }, [data])
+  }
 
   const ssid = localConfig?.ssids?.[0]
 
   const handleRefresh = useCallback(() => {
-    setLocalConfig(null)
+    setEdits(null)
     setHasChanges(false)
     mutate()
   }, [mutate])
@@ -85,7 +82,7 @@ export default function WifiPage() {
       [band]: !currentValue,
     }
 
-    setLocalConfig({
+    setEdits({
       ...localConfig,
       ssids: updatedSsids,
     })
@@ -98,7 +95,7 @@ export default function WifiPage() {
 
     const currentValue = localConfig[band]?.isRadioEnabled
 
-    setLocalConfig({
+    setEdits({
       ...localConfig,
       [band]: {
         ...localConfig[band],
@@ -118,7 +115,7 @@ export default function WifiPage() {
       isBroadcastEnabled: !ssid.isBroadcastEnabled,
     }
 
-    setLocalConfig({
+    setEdits({
       ...localConfig,
       ssids: updatedSsids,
     })
@@ -135,7 +132,7 @@ export default function WifiPage() {
       ssidName: name,
     }
 
-    setLocalConfig({
+    setEdits({
       ...localConfig,
       ssids: updatedSsids,
     })
@@ -152,7 +149,7 @@ export default function WifiPage() {
       wpaKey: password,
     }
 
-    setLocalConfig({
+    setEdits({
       ...localConfig,
       ssids: updatedSsids,
     })

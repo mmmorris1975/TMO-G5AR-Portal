@@ -16,7 +16,8 @@ import {
   PanelLeftClose,
   PanelLeft,
 } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
+import { useLocalStorage } from "@/hooks/use-local-storage"
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -33,37 +34,29 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed = false, onCollapsedChange }: SidebarProps) {
   const pathname = usePathname()
-  const [isDark, setIsDark] = useState(false)
-  const [isCollapsed, setIsCollapsed] = useState(collapsed)
+  const [savedDark, saveDark] = useLocalStorage("dark-mode", "false", () =>
+    document.documentElement.classList.contains("dark") ? "true" : "false"
+  )
+  const isDark = savedDark === "true"
+  // Collapsed state is owned (and persisted) by the parent layout
+  const isCollapsed = collapsed
 
+  // Apply the saved dark mode preference on mount
   useEffect(() => {
-    const savedDark = localStorage.getItem("dark-mode")
-    const isDarkMode = savedDark !== null
-      ? savedDark === "true"
-      : document.documentElement.classList.contains("dark")
-    setIsDark(isDarkMode)
-    document.documentElement.classList.toggle("dark", isDarkMode)
-
-    const savedCollapsed = localStorage.getItem("sidebar-collapsed")
-    if (savedCollapsed !== null) {
-      const newCollapsed = savedCollapsed === "true"
-      setIsCollapsed(newCollapsed)
-      onCollapsedChange?.(newCollapsed)
+    const saved = localStorage.getItem("dark-mode")
+    if (saved !== null) {
+      document.documentElement.classList.toggle("dark", saved === "true")
     }
-  }, [onCollapsedChange])
+  }, [])
 
   const toggleDarkMode = () => {
     const newDark = !isDark
     document.documentElement.classList.toggle("dark", newDark)
-    setIsDark(newDark)
-    localStorage.setItem("dark-mode", String(newDark))
+    saveDark(String(newDark))
   }
 
   const toggleCollapsed = () => {
-    const newCollapsed = !isCollapsed
-    setIsCollapsed(newCollapsed)
-    onCollapsedChange?.(newCollapsed)
-    localStorage.setItem("sidebar-collapsed", String(newCollapsed))
+    onCollapsedChange?.(!isCollapsed)
   }
 
   const handleLogout = async () => {

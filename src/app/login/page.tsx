@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,32 +11,25 @@ import Image from "next/image"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [routerIp, setRouterIp] = useState("192.168.12.1")
-  const [username, setUsername] = useState("")
+  // Saved values are shown until the user edits the field (null = untouched)
+  const [savedIp] = useLocalStorage("router_ip")
+  const [savedUsername] = useLocalStorage("remembered_username")
+  const [routerIpEdit, setRouterIp] = useState<string | null>(null)
+  const [usernameEdit, setUsername] = useState<string | null>(null)
+  const [rememberEdit, setRememberUsername] = useState<boolean | null>(null)
+  const routerIp = routerIpEdit ?? (savedIp || "192.168.12.1")
+  const username = usernameEdit ?? (savedUsername || "admin") // Default username
+  const rememberUsername = rememberEdit ?? !!savedUsername
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberUsername, setRememberUsername] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  // Load saved settings on mount
+  // Apply saved dark mode preference on mount
   useEffect(() => {
     const savedDark = localStorage.getItem("dark-mode")
     if (savedDark !== null) {
       document.documentElement.classList.toggle("dark", savedDark === "true")
-    }
-
-    const savedIp = localStorage.getItem("router_ip")
-    if (savedIp) {
-      setRouterIp(savedIp)
-    }
-
-    const savedUsername = localStorage.getItem("remembered_username")
-    if (savedUsername) {
-      setUsername(savedUsername)
-      setRememberUsername(true)
-    } else {
-      setUsername("admin") // Default username
     }
   }, [])
 
